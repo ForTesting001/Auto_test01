@@ -43,8 +43,8 @@ jobs:
         key: ${{ runner.os }}-playwright-${{ hashFiles('.github/workflows/ci.yml') }}
 
     - name: "Step 4b: Install Playwright Core Browser Binaries"
-      # Chỉ tải và cài đặt nếu không tìm thấy trong bộ nhớ đệm (Cache Miss)
-      if: stepsplaywright-cache.outputs.cache-hit != 'true'
+      # Sửa lỗi chính tả: thêm dấu chấm "." vào sau chữ steps để truy cập thuộc tính đúng chuẩn
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
       run: |
         python -m playwright install --with-deps
 

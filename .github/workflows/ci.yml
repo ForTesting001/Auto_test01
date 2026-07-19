@@ -5,7 +5,7 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch: # allow re-run test on github web
+  workflow_dispatch: # Cho phép bấm nút kích hoạt chạy test thủ công trên giao diện Web
 
 jobs:
   automation-test-suite:
@@ -13,7 +13,6 @@ jobs:
 
     steps:
     - name: "Step 1: Check out source code repository"
-      uses: actions/skip-checkout@v4
       uses: actions/checkout@v4
 
     - name: "Step 2: Initialize Python 3.8 environment"

@@ -23,19 +23,24 @@ jobs:
     - name: "Step 3: Install Core and Test Framework dependencies"
       run: |
         python -m pip install --upgrade pip
-        pip install fastapi uvicorn requests pydantic pytest pytest-html
+        pip install fastapi uvicorn requests pydantic pytest pytest-html playwright
 
-    - name: "Step 4: Boot Mock Enterprise Application Server in Background"
+    - name: "Step 4: Install Playwright Core Browser Binaries"
+      # Bước này bắt buộc phải có để Linux tải các driver mạng và nhân browser của Playwright về máy ảo
+      run: |
+        python -m playwright install --with-deps
+
+    - name: "Step 5: Boot Mock Enterprise Application Server in Background"
       run: |
         python server.py &
         echo "Waiting for FastAPI server to establish socket connection on port 8000..."
         sleep 3
 
-    - name: "Step 5: Execute Test Suite and Generate HTML Report"
+    - name: "Step 6: Execute Test Suite and Generate HTML Report"
       run: |
         python -m pytest tests/ -v -s --html=html-report/report.html --self-contained-html
 
-    - name: "Step 6: Upload Test Report Artifact to GitHub Interface"
+    - name: "Step 7: Upload Test Report Artifact to GitHub Interface"
       if: always()
       uses: actions/upload-artifact@v4
       with:

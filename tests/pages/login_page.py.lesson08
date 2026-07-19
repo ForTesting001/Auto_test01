@@ -1,0 +1,50 @@
+class LoginPage:
+    """
+    Page Object Model representing the Enterprise Portal Login Screen.
+    Contains all element selectors and page interaction methods.
+    """
+    
+    def __init__(self, page):
+        # We pass the Playwright Page instance to this Class
+        self.page = page
+        
+        # ---------------------------------------------------------------------
+        # SELECTORS: Centralized UI Element Selectors
+        # If any HTML ID changes in development, you only update it here!
+        # ---------------------------------------------------------------------
+        self.username_input = "#username-input"
+        self.password_input = "#password-input"
+        self.submit_button = "#submit-button"
+        self.alert_box = "#alert-box"
+
+    # -------------------------------------------------------------------------
+    # INTERACTIONS: Atomic actions user can perform on this page
+    # -------------------------------------------------------------------------
+    def navigate_to(self, url: str):
+        """Navigates the browser directly to the login page."""
+        self.page.goto(url)
+
+    def fill_username(self, username: str):
+        """Fills the username field with input value."""
+        self.page.fill(self.username_input, username)
+
+    def fill_password(self, password: str):
+        """Fills the password field with input value."""
+        self.page.fill(self.password_input, password)
+
+    def click_submit(self):
+        """Clicks the authentication submission button."""
+        self.page.click(self.submit_button)
+
+    def get_alert_text(self) -> str:
+        """Extracts and returns the response message from the UI alert box."""
+        return self.page.locator(self.alert_box).inner_text()
+
+    # -------------------------------------------------------------------------
+    # WORKFLOWS: High-level business flows combining atomic actions
+    # -------------------------------------------------------------------------
+    def execute_login(self, username: str, password: str):
+        """Combines credential input and submission into a single workflow."""
+        self.fill_username(username)
+        self.fill_password(password)
+        self.click_submit()

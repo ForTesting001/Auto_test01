@@ -1,0 +1,161 @@
+active virtual environment .venv\scripts\activate
+start backend: uvicorn app.main:app --reload --port 8060
+
+-------------------
+lesson 6:
+    pip install pytest pytest-html
+    # wait 5000 miniseconds before close browser for see testing purpose only
+    page.wait_for_timeout(5000)
+    set PYTHONPATH=.&& pytest tests/test_first_login.py -v --html=data/report.html --self-contained-html
+    echo %PYTHONPATH%
+    python -m pytest tests/test_first_login.py -v --html=data/report.html --self-contained-html
+    python -m pytest tests/test_first_login.py -s -v --html=data/report.html --self-contained-html
+-------------
+lesson 7:
+    tests\conftest.py: @pytest.fixture(scope="session")
+    lesson 6: Chrome phải bật lên và tắt đi đúng 5 lần cho 5 testcases.  >> giải quyết vấn đề này bằng Pytest: Fixtures (Quản lý vòng đời tài nguyên) kết hợp với file cấu hình tập trung conftest.py.
+    @pytest.fixture(scope="session")
+    def tên_fixture():
+        1. SETUP (Khởi tạo trước khi test)
+       - Cấu hình driver, bật trình duyệt Chrome lên ngầm.
+       --------------------------------------------------
+        yield tài_nguyên_cho_hàm_test_mượn
+        --------------------------------------------------
+        2. TEARDOWN (Dọn dẹp sau khi tất cả test kết thúc)
+        - Đóng tab, tắt trình duyệt, giải phóng RAM.
+    
+    mô hình TEST AAA: Arrange - Act - Assert):
+        Arrange (Chuẩn bị): Bật Chrome, tạo tab mới, cấu hình mạng...
+        Act (Hành động): Nhập user/pass, click Login.
+        Assert (Xác nhận): Kiểm tra xem chữ "SUCCESS" có hiện ra không.
+        Nếu không dùng Fixture, khối lệnh Arrange (Chuẩn bị) sẽ bị copy-paste lặp đi lặp lại
+        Định nghĩa: Fixture là một cơ chế thiết lập tài nguyên môi trường của Pytest. Nó giúp bạn chuẩn bị sẵn một "bối cảnh - context" 
+        (như một trình duyệt đã bật sẵn), bàn giao bối cảnh đó cho hàm test sử dụng, và tự động dọn dẹp (tắt trình duyệt) khi test xong.
+    
+------------------------------
+Lesson 8: Environment Configuration Management via Dotenv
+    python-dotenv là gì? Đây là một package thư viện phổ biến bậc nhất trong thế giới DevOps. Nhiệm vụ duy nhất của nó là tìm kiếm một file 
+    có tên .env hoặc cấu hình tương đương, đọc các cặp dữ liệu KEY=VALUE bên trong đó, rồi nạp thẳng vào bộ nhớ môi trường của hệ điều hành (os.environ).
+    pip install python-dotenv
+    data\config.env
+    chrome_path = os.getenv("CHROME_EXECUTABLE_PATH")
+
+---------------------------------
+Lesson 9: Asynchronous Playwright API & Async/Await Foundation:Transition from Synchronous to Asynchronous automation.
+Chúng ta sẽ đập bỏ hoàn toàn thư viện đồng bộ sync_playwright hiện tại để chuyển sang thế giới bất đồng bộ sử dụng async_playwright. 
+Đây là nền tảng cốt lõi của lập trình hiệu năng cao trong Python giúp xử lý luồng không bị nghẽn (non-blocking).
+    Bản chất Kỹ thuật: Synchronous vs. Asynchronous trong Automation
+        Từ Lesson 1 đến Lesson 8, chúng ta đang dùng API đồng bộ (Synchronous - Sync):
+        Cơ chế hoạt động: Khi script chạy đến lệnh page.goto(url) hoặc page.click(), 
+        luồng xử lý của Python sẽ bị khóa cứng (blocked) lại. Python sẽ ngồi im ròng rã vài giây 
+        để đợi trình duyệt tải xong trang web rồi mới chịu chạy tiếp dòng code tiếp theo.
+        Nhược điểm: Cực kỳ lãng phí tài nguyên CPU và RAM, đồng thời khiến hệ thống không thể 
+        chạy song song nhiều trình duyệt cùng một lúc (Parallel Testing).
+
+        Hôm nay, chúng ta chuyển sang API bất đồng bộ (Asynchronous - Async):
+        Cơ chế hoạt động: Sử dụng cặp từ khóa async và await. Khi gặp lệnh await page.goto(url), 
+        Python sẽ phát lệnh cho trình duyệt chạy, nhưng thay vì ngồi đợi vô nghĩa, 
+        Python sẽ lập tức giải phóng luồng (unblock) để đi xử lý các tác vụ khác. 
+        Khi trình duyệt tải xong, nó sẽ báo lại và Python quay lại xử lý tiếp.
+        Ưu điểm: Đây là viên gạch nền tảng bắt buộc để ở Lesson 10, 
+        chúng ta có thể bật cùng lúc 5-10 trình duyệt chạy song song mà không làm sập RAM máy tính.
+    Vì chúng ta chuyển sang cơ chế Async, cả 3 file chính trong hệ thống gồm login_page.py, conftest.py, và test_first_login.py 
+    đều cần được nâng cấp cấu trúc đồng loạt.
+
+    Vì chúng ta dùng kịch bản async/await, framework Pytest cần thêm một chiếc "chìa khóa" để dịch và chạy được code async. 
+    Bạn chỉ cần cài thêm thư viện cầu nối pytest-asyncio: pip install pytest-asyncio
+    Nếu không cài thêm sẽ báo lỗi khi chạy: 5 skipped, 5 warnings in 0.06s
+        async def functions are not natively supported and have been skipped.
+        You need to install a suitable plugin for your async framework, for example:
+            - anyio
+            - pytest-asyncio
+            ...
+    Step 2.1: Tạo file cấu hình hạ tầng (pytest.ini)
+    Bạn hãy tạo mới một file tên chính xác là pytest.ini và đặt nó nằm ngay tại thư mục gốc của dự án Auto_test01/ 
+    (cùng cấp với thư mục tests/ và data/). dù để fix lỗi dù đã install pytest-asyncio
+    Lúc này, Pytest sẽ đọc file pytest.ini trước, hiểu được cấu hình hệ thống, và cảnh báo PytestUnhandledCoroutineWarning sẽ đc fixed.
+--------------------------
+Lesson 10: Parallel Testing Execution & Multi-threading, Utilizing pytest-xdist to execute multiple browsers simultaneously
+    Chúng ta sẽ cài đặt và cấu hình plugin pytest-xdist. Tận dụng nền tảng Async vững chắc vừa xây ở Lesson 9, chúng ta sẽ 
+    ra lệnh cho hệ thống phân rã 5 test cases ra cho 3 cửa sổ Chrome độc lập chạy đồng thời cùng một giây (Concurrently). 
+    Thời gian hoàn thành bài test sẽ được rút ngắn xuống gấp 3 lần!
+
+    Tự động chụp màn hình (screenshot capture) cho từng test case khi chạy xong và đính kèm vào file HTML báo cáo.
+    Kích hoạt chế độ chạy song song (parallel testing) bằng pytest-xdist để bật cùng lúc nhiều trình duyệt, tăng tốc thời gian thực thi lên gấp nhiều lần.
+
+    pip install pytest-xdist
+    python -m pytest tests/test_first_login.py -v -n 3 --html=data/report.html --self-contained-html #-n 3 là 3 workers cho run parallel đó.
+    python -m pytest tests/test_first_login.py -v -n 3 --html=data/report.htm thêm screenshots thì run this command, 
+    đang không gắn luôn screenshots vào report được, xóa folder screenshots đi là k xem được screenshot trên report.html
+
+-----------
+Lesson 11: Enterprise Logging Architecture & Log Rotations:Integrating automated logging frameworks for DevOps tracking.
+Chúng ta sẽ xây dựng hệ thống quản lý nhật ký (logging) chuyên nghiệp. Thay vì dùng lệnh print() thủ công chỉ hiển thị tạm thời trên terminal,
+chúng ta sử dụng thư viện logging tiêu chuẩn để ghi toàn bộ lịch sử tương tác, lỗi mạng, thời gian chạy vào một file log tập trung 
+data/automation.log theo định dạng thời gian chuẩn DevOps.
+
+    Trong môi trường vận hành DevOps thực tế, khi bạn đẩy mã nguồn Automation lên chạy tự động trên các máy chủ CI/CD (như Jenkins, GitHub 
+    Actions),  bạn sẽ không thể ngồi nhìn màn hình terminal hay xem lệnh print() hiển thị trực tiếp được. Nếu test case bị lỗi giữa đêm, 
+    thứ duy nhất cứu cánh kỹ sư là File Log.
+    
+    Hôm nay, chúng ta sẽ đập bỏ toàn bộ các lệnh print() thủ công và thay thế bằng một Hệ thống ghi nhật ký tập trung (Enterprise Logging) sử dụng thư viện tiêu chuẩn logging của Python.
+        1. Bản chất Kỹ thuật của Logging Framework
+        Hệ thống Logging chuẩn Enterprise luôn bao gồm 3 thành phần cốt lõi:
+        Log Levels (Mức độ nghiêm trọng): Phân loại log để dễ bộ lọc (INFO cho luồng chạy thông thường, WARNING cho lỗi nhẹ không sập hệ thống, ERROR cho lỗi Assertion test case fail).
+        Log Format (Định dạng thời gian): Mỗi dòng log bắt buộc phải lưu chính xác: [Thời gian] | [Mức độ] | [Tiến trình Worker] | [Nội dung hành động].
+        File Handler: Tự động ghi đồng thời ra cả màn hình Console lẫn lưu cố định vào file vật lý data/automation.log.
+
+-----------------------------------
+Lesson 12: Headless Mode Execution & Optimization for Linux Containers
+    Tiết kiệm tài nguyên: Khi bật Headless, trình duyệt sẽ bỏ qua toàn bộ công đoạn render giao diện đồ họa (GPU rendering, vẽ pixel 
+    lên màn hình). Hệ thống chỉ chạy phần lõi logic (DOM Tree, Javascript Engine). Điều này giúp tốc độ chạy test nhanh hơn từ 20% - 40% 
+    và giảm tới 50% lượng RAM tiêu thụ trên mỗi Worker.
+    
+    Biến môi trường điều hướng (Environment-driven configuration): Chúng ta sẽ không cấu hình cứng headless=True vào code. Thay vào đó, 
+    ta sẽ dùng file config.env để kiểm soát. Khi chạy Local cần debug $\rightarrow$ chỉnh thành False. Khi đẩy lên Git/Docker $\rightarrow$ chỉnh thành True.  
+
+    Gemini giải thích chi tiết conftest.py
+
+--------------------------
+Phase 4: API Testing & Hybrid Automation Pipelines
+Lesson 13: Local API Integration & Environment Bootstrapping
+    python server.py >>http://localhost:8000/docs ; end-point: http://localhost:8000/api/v1/auth/login
+    python -m pytest tests/test_api_login.py -v -s
+
+------------------------------
+Lesson 14: Centralized API Fixtures & Negative Flow Assertions.
+
+    Thêm @pytest.fixture(scope="function") 
+    async def api_client(): vào conftest.py
+
+------------------------
+Lesson 15: Hybrid Automation — Injecting API Tokens into UI Sessions
+
+Trong các dự án Web Enterprise lớn, nếu hệ thống có hàng trăm UI test cases cần kiểm tra 
+các tính năng sâu bên trong Dashboard (ví dụ: quản lý kế toán, cài đặt hệ thống, phân quyền...), việc test case nào cũng phải lặp lại các bước mở màn hình login, điền username, điền password rồi đợi trang web load sẽ gây ra sự lãng phí tài nguyên cực kỳ lớn và làm chậm tốc độ của CI/CD pipeline.
+Hôm nay, chúng ta sẽ kết hợp sức mạnh của cả API lẫn UI để thực hiện kỹ thuật Hybrid Testing.
+
+Luồng hoạt động ok:
+1. Gửi một API Request đăng nhập ngầm để lấy mã token bảo mật về (chỉ mất vài mili-giây).
+2. Khởi động một browser context trống thông qua Playwright UI.
+3. Inject (Bơm trực tiếp) mã token này vào cookies hoặc localStorage của browser context đó.
+4. Điều hướng thẳng trình duyệt đến URL /dashboard. Trình duyệt sẽ nhận diện token hợp lệ và cho phép vào thẳng 
+trang quản trị mà hoàn toàn bỏ qua bước Login UI.
+
+    tests/test_hybrid_auth.py
+
+----------------------
+Lesson 16: Database Assertions — Verifying Real-time Backend State
+Bây giờ hệ thống Hybrid chạy ổn định, chúng ta sẽ sang bài học tiếp theo về Database Integration.
+Trong Enterprise, sau khi một hành động (như đăng nhập, tạo dữ liệu, thay đổi cấu hình) được thực hiện thành công qua API hoặc UI, dữ liệu bắt buộc phải được ghi nhận chính xác xuống cơ sở dữ liệu. Việc chỉ kiểm tra (assertion) trên giao diện hoặc HTTP Response là chưa đủ tin cậy. Chúng ta cần kết nối trực tiếp vào Database để verify trạng thái thực tế của dữ liệu.
+
+Chúng ta sẽ nâng cấp hệ thống:
+    Sửa server.py để mỗi khi có request gọi vào endpoint /api/v1/auth/login, thông tin logs đăng nhập (Thời gian, Username, Trạng thái) sẽ 
+    được ghi trực tiếp vào một file cơ sở dữ liệu SQLite (data/security_audit.db).
+    Viết một test case mới thực hiện kết nối vào file DB đó bằng thư viện sqlite3 có sẵn của Python để chạy câu lệnh SELECT kiểm tra.
+    
+python -m pytest tests/test_database_assertions.py -v
+
+----------------------
+Lesson 17: CI/CD Integration — Automating the Test Suite via GitHub Actions
+    create file: .github/workflows/ci.yml

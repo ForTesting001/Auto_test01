@@ -1,0 +1,9 @@
+[tool.ruff]
+line-length = 150
+
+[tool.ruff.lint]
+line-length = 150
+
+[tool.ruff.format]
+line-length = 150
+line-ending = "lf"

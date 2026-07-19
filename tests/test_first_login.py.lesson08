@@ -1,0 +1,46 @@
+import os
+import pytest
+from pages.login_page import LoginPage
+
+@pytest.mark.parametrize(
+    "test_name, username, password, expected_keyword",
+    [
+        ("Wrong password scenario", "admin", "wrong_pass", "ERROR:"),
+        ("Non-existent user scenario", "intruder_user", "any_password", "ERROR:"),
+        ("Empty credentials scenario", " ", " ", "ERROR:"),
+        ("SQL Injection attempt scenario", "admin'--", "123456", "ERROR:"),
+        ("Valid admin credentials scenario", "admin", "admin123", "SUCCESS:")
+    ]
+)
+def test_enterprise_login_portal(browser_context, test_name, username, password, expected_keyword):  # noqa: E501
+    """
+    Test execution utilizing dynamic system parameters pulled via os.getenv.
+    """
+    print(f"\n[STARTING] Executing case: {test_name}")
+    
+    # Dynamically pull the TARGET_URL configured in data/config.env
+    target_url = os.getenv("TARGET_URL")
+    
+    if not target_url:
+        pytest.fail("[FATAL] TARGET_URL environment variable is not defined!")
+
+    # Open a clean single page tab within our existing session-scoped browser context
+    page = browser_context.new_page()
+    
+    # Initialize Page Object Model using the active page tab
+    login_page = LoginPage(page)
+    login_page.navigate_to(target_url)
+    
+    # Execute login steps via POM
+    login_page.execute_login(username, password)
+    
+    # Validate server response on UI
+    alert_text = login_page.get_alert_text()
+    print(f"[RESULT] UI Alert text captured: '{alert_text}'")
+    
+    # Assertion check
+    assert expected_keyword in alert_text, f"Assertion failed during: {test_name}"
+    
+    # Close only this tab to maintain a clean environment for the next scenario
+    page.close()
+    print(f"[PASSED] Finished execution for: {test_name}")

@@ -1,0 +1,13 @@
+# ignore to add git
+.venv/
+venv/
+ENV/
+
+# ignore security_audit.db to add git 
+data/security_audit.db
+
+# ignore runtime files to add git 
+__pycache__/
+*.pyc
+.pytest_cache/
+html-report/

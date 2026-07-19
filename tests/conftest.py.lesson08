@@ -1,0 +1,45 @@
+import os
+import pytest
+from playwright.sync_api import sync_playwright
+# Import the load_dotenv function from python-dotenv package
+from dotenv import load_dotenv
+
+# Absolute path targeting our data/config.env file
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ENV_PATH = os.path.join(BASE_DIR, "data", "config.env")
+
+# Force load the environment variables from the custom path
+load_dotenv(dotenv_path=ENV_PATH)
+
+# Bypass OS platform checks for older node environments
+os.environ["NODE_SKIP_PLATFORM_CHECK"] = "1"
+
+@pytest.fixture(scope="session")
+def browser_context():
+    """
+    Global session fixture that fetches infrastructure paths dynamically
+    from the loaded environment variables instead of hardcoding.
+    """
+    # Fetching values securely from os.environ dictionary
+    chrome_path = os.getenv("CHROME_EXECUTABLE_PATH")
+    
+    if not chrome_path or not os.path.exists(chrome_path):
+        pytest.fail(f"[FATAL] Chrome binary path invalid or missing in configuration: {chrome_path}")  # noqa: E501
+        
+    print(f"\n[FIXTURE-INFO] Loaded CHROME_EXECUTABLE_PATH: {chrome_path}")
+    print("[FIXTURE-INFO] Initializing Global Playwright Engine...")
+    
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(
+            executable_path=chrome_path,
+            headless=False,
+            slow_mo=500
+        )
+        
+        context = browser.new_context()
+        yield context
+        
+        print("\n[FIXTURE-INFO] Teardown triggered. Closing Global Browser Session...")
+        context.close()
+        browser.close()
+        print("[FIXTURE-INFO] Global Browser Session ended cleanly.")
